@@ -1,11 +1,13 @@
-#![allow(dead_code, unused_variables, unused_imports)]
+#![allow(dead_code)]
+
+#[macro_use]
+extern crate lazy_static;
 
 mod types;
-use types::*;
 mod display;
-use display::*;
 mod typecheck;
-use typecheck::*;
+
+use types::*;
 
 // var c:Nat;
 // procedure div(a:Nat,b:Nat; ref q:Nat,r:Nat) {
@@ -29,158 +31,165 @@ use typecheck::*;
 // program main(a:Nat,b:Nat,c:Nat,d:Nat) {
 // call gcd(a*b,a+b;c,d)
 // }
-
 fn generate_gcd() -> Program<'static> {
-let c = Declaration::Variable(Identifier("c".into()), Sort("Nat".into()));
-// let div = Declaration::Procedure(
-//     Identifier("div".into()),
-//     Parameters::Sequence(
-//         Box::new(Parameters::Sequence(
-//             Box::new(Parameters::Sequence(
-//                 Box::new(Parameters::Empty),
-//                 Variable(Identifier("q".into()), Sort("Nat".into())),
-//                 Sort("ref Nat".into()),
-//             )),
-//             Variable(Identifier("r".into()), Sort("Nat".into())),
-//             Sort("ref Nat".into()),
-//         )),
-//         Variable(Identifier("a".into()), Sort("Nat".into())),
-//         Sort("Nat".into()),
-//         Variable(Identifier("b".into()), Sort("Nat".into())),
-//         Sort("Nat".into()),
-//     ),
-//     Command::Sequence(
-//         Command::Assign(Identifier("q".into()), Expression::Numeral(0.into()).into()).into(),
-//         Command::Assign(
-//             Identifier("r".into()),
-//             Expression::Identifier("a".into()).into(),
-//         )
-//         .into(),
-//         Command::While(
-//             Expression::LessThanOrEqual(
-//                 Expression::Identifier("r".into()).into(),
-//                 Expression::Identifier("b".into()).into(),
-//             )
-//             .into(),
-//             Command::Sequence(
-//                 Command::Assign(
-//                     Identifier("q".into()),
-//                     Expression::Sum(
-//                         Expression::Identifier("q".into()).into(),
-//                         Expression::Numeral(1.into()).into(),
-//                     )
-//                     .into(),
-//                 )
-//                 .into(),
-//                 Command::Assign(
-//                     Identifier("r".into()),
-//                     Expression::Difference(
-//                         Expression::Identifier("r".into()).into(),
-//                         Expression::Identifier("b".into()).into(),
-//                     )
-//                     .into(),
-//                 )
-//                 .into(),
-//             )
-//             .into(),
-//         )
-//         .into(),
-//         Command::Assign(
-//             Identifier("c".into()),
-//             Expression::Sum(
-//                 Expression::Identifier("c".into()).into(),
-//                 Expression::Numeral(1.into()).into(),
-//             )
-//             .into(),
-//         )
-//         .into(),
-//     )
-//     .into(),
-// );
-// let gcd = Declaration::Procedure(
-//     Identifier("gcd".into()),
-//     Parameters::Sequence(
-//         Box::new(Parameters::Sequence(
-//             Box::new(Parameters::Sequence(
-//                 Box::new(Parameters::Empty),
-//                 Variable(Identifier("g".into()), Sort("Nat".into())),
-//                 Sort("ref Nat".into()),
-//             )),
-//             Variable(Identifier("n".into()), Sort("Nat".into())),
-//             Sort("Nat".into()),
-//         )),
-//         Variable(Identifier("a".into()), Sort("Nat".into())),
-//         Sort("Nat".into()),
-//         Variable(Identifier("b".into()), Sort("Nat".into())),
-//         Sort("Nat".into()),
-//     ),
-//     Command::Sequence(
-//         Command::Assign(
-//             Identifier("c".into()),
-//             Expression::Numeral(0.into()).into(),
-//         )
-//         .into(),
-//         Command::While(
-//             Expression::And(
-//                 Expression::GreaterThan(Expression::Identifier("a".into()).into(), Expression::Numeral(0.into()).into()).into(),
-//                 Expression::GreaterThan(Expression::Identifier("b".into()).into(), Expression::Num
+    let a_b_parameter_sequence = Parameters::Sequence(
+        Parameters::Sequence(Parameters::Empty.into(), "a".into(), "Nat".into()).into(),
+        "b".into(),
+        "Nat".into(),
+    );
 
-    let declarations = Declarations::Sequence(c, Declarations::Empty.into());
-    let parameters = Parameters::Empty;
-    let main = Command::Sequence(Command::Call("gcd".into(), Expressions::Empty, Variables::Empty).into(), Command::Empty.into());
+    let div_while = Command::While(
+        Expression::LessThanOrEqual("b".into(), "r".into()),
+        Command::Sequence(
+            Command::Assign("q".into(), Expression::Sum("q".into(), 1.into())).into(),
+            Command::Assign("r".into(),Expression::Difference("r".into(), "b".into())).into(),
+        )
+        .into(),
+    );
+
+    let c = Declaration::Variable("c".into(), "Nat".into());
+
+    let div = Declaration::Procedure(
+        "div".into(),
+        a_b_parameter_sequence.clone(),
+        Parameters::Sequence(
+            Parameters::Sequence(Parameters::Empty.into(), "q".into(), "Nat".into()).into(),
+            "r".into(),
+            "Nat".into(),
+        ),
+        Command::Sequence(
+            Command::Sequence(
+                Command::Assign("q".into(), 0.into()).into(),
+                Command::Assign("r".into(), "a".into()).into(),
+            )
+            .into(),
+            Command::Sequence(
+                div_while.into(),
+                Command::Assign("c".into(), Expression::Sum("c".into(), 1.into())).into(),
+            )
+            .into(),
+        )
+        .into(),
+    );
+
+    let while_body = Command::Var(
+        "c".into(),
+        "Nat".into(),
+        Command::IfElse(
+            Expression::LessThanOrEqual("b".into(), "a".into()).into(),
+            Command::Call(
+                "div".into(),
+                Expressions::Sequence(
+                    "a".into(),
+                    Expressions::Sequence("b".into(), Expressions::Empty.into()).into(),
+                )
+                .into(),
+                Variables::Sequence(
+                    "c".into(),
+                    Variables::Sequence("a".into(), Variables::Empty.into()).into(),
+                )
+                .into(),
+            )
+            .into(),
+            Command::Call(
+                "div".into(),
+                Expressions::Sequence(
+                    "b".into(),
+                    Expressions::Sequence("a".into(), Expressions::Empty.into()).into(),
+                )
+                .into(),
+                Variables::Sequence(
+                    "c".into(),
+                    Variables::Sequence("b".into(), Variables::Empty.into()).into(),
+                )
+                .into(),
+            )
+            .into(),
+        )
+        .into(),
+    );
+
+    let gcd_if = Command::IfElse(
+        Expression::Not(Expression::LessThanOrEqual("a".into(), 0.into()).into()).into(),
+        Command::Assign("g".into(), "a".into()).into(),
+        Command::Assign("g".into(), "b".into()).into(),
+    );
+
+    let gcd = Declaration::Procedure(
+        "gcd".into(),
+        a_b_parameter_sequence,
+        Parameters::Sequence(
+            Parameters::Sequence(Parameters::Empty.into(), "c".into(), "Nat".into()).into(),
+            "d".into(),
+            "Nat".into(),
+        ),
+        Command::Sequence(
+            Command::Assign("c".into(), 0.into()).into(),
+            Command::Sequence(
+                Command::While(
+                    Expression::And(
+                        Expression::Not(Expression::LessThanOrEqual("a".into(), 0.into()).into())
+                            .into(),
+                        Expression::Not(Expression::LessThanOrEqual("b".into(), 0.into()).into())
+                            .into(),
+                    ),
+                    while_body.into(),
+                )
+                .into(),
+                Command::Sequence(
+                    gcd_if.into(),
+                    Command::Assign("n".into(), "c".into()).into(),
+                )
+                .into(),
+            )
+            .into(),
+        ),
+    );
+
+    let declarations = Declarations::Sequence(
+        Declarations::Sequence(
+            Declarations::Sequence(Declarations::Empty.into(), c).into(),
+            div,
+        )
+        .into(),
+        gcd,
+    );
+    let parameters = Parameters::Sequence(
+        Parameters::Sequence(
+            Parameters::Sequence(
+                Parameters::Sequence(Parameters::Empty.into(), "a".into(), "Nat".into()).into(),
+                "b".into(),
+                "Nat".into(),
+            )
+            .into(),
+            "c".into(),
+            "Nat".into(),
+        )
+        .into(),
+        "d".into(),
+        "Nat".into(),
+    );
+
+    let main = Command::Call(
+        "gcd".into(),
+        Expressions::Sequence(
+            Expression::Product("a".into(), "b".into()),
+            Expressions::Sequence(
+                Expression::Sum("a".into(), "b".into()).into(),
+                Expressions::Empty.into(),
+            )
+            .into(),
+        ),
+        Variables::Sequence(
+            "c".into(),
+            Variables::Sequence("d".into(), Variables::Empty.into()).into(),
+        ),
+    );
+
     let program = Program(declarations, "gcd".into(), parameters, main);
 
     program
 }
-
-
-// program gcd(a:Nat,b:Nat,g:Nat,n:Nat) {
-// var c:Nat; c := 0;
-// while a > 0 ∧ b > 0 do {
-// if a ≥ b
-// then a := a-b
-// else b := b-a
-// c := c+1
-// }
-// if a > 0
-// then g := a
-// else g := b;
-// n
-
-// Definition 7.1 (Program) A program is a phrase P ∈ Program which is formed
-// according to the following grammar:
-// P ∈ Program, X ∈ Parameters, C ∈ Command
-// F ∈ Formula, T ∈ Term, V ∈ Variable, S ∈ Sort, I ∈ Identifier
-// P ::= program I(X) C
-// X ::= | X, V: S
-// C ::= V:= T | var V: S; C | C1;C2 |
-// | if F then C1 else C2 | if F then C | while F do C
-// Here Parameters denotes the syntactic domain of parameters while Command
-// denotes the syntactic domain of commands. The syntactic domains Formula
-// of formulas, Term of terms, Variable of variables, Sort of sorts, and Identifier
-// of identifiers, are formed as in Definition 6.1.
-
-// type numeral = int ;;
-// type identifier = string ;;
-// type expression =
-// | N of numeral
-// | I of identifier
-// | S of expression * expression
-// | P of expression * expression
-// ;;
-// type boolexp =
-// | Eq of expression * expression
-// | Not of boolexp
-// | And of boolexp * boolexp
-// ;;
-// type command =
-// | Assign of identifier * expression
-// | Var of identifier * command
-// | Seq of command * command
-// | If2 of boolexp * command * command
-// | If1 of boolexp * command
-// | While of boolexp * command
-// ;;
 
 fn main() {
     // let program = Program("gcd".into(), Parameter::None, Command::None);
@@ -211,8 +220,8 @@ mod tests {
     fn test_bad_add() {
         let b = Expression::Not(
             Expression::Equal(
-                Expression::Identifier("i".into()).into(),
-                Expression::Identifier("n".into()).into(),
+                Expression::Variable("i".into()).into(),
+                Expression::Variable("n".into()).into(),
             )
             .into(),
         );
@@ -220,26 +229,26 @@ mod tests {
             "j".into(),
             Expression::Sum(
                 Expression::Product(
-                    Expression::Numeral(2.into()).into(),
-                    Expression::Identifier("i".into()).into(),
+                    Expression::Value(2.into()).into(),
+                    Expression::Variable("i".into()).into(),
                 )
                 .into(),
-                Expression::Numeral(1.into()).into(),
+                Expression::Value(1.into()).into(),
             )
             .into(),
         );
         let c2 = Command::Assign(
             "a".into(),
             Expression::Sum(
-                Expression::Identifier("a".into()).into(),
-                Expression::Identifier("j".into()).into(),
+                Expression::Variable("a".into()).into(),
+                Expression::Variable("j".into()).into(),
             ),
         );
         let c3 = Command::Assign(
             "i".into(),
             Expression::Sum(
-                Expression::Identifier("i".into()).into(),
-                Expression::Numeral(1.into()).into(),
+                Expression::Variable("i".into()).into(),
+                Expression::Value(1.into()).into(),
             )
             .into(),
         );
@@ -247,6 +256,7 @@ mod tests {
             b,
             Command::Var(
                 "j".into(),
+                "Int".into(),
                 Command::Sequence(c1.into(), Command::Sequence(c2.into(), c3.into()).into()).into(),
             )
             .into(),

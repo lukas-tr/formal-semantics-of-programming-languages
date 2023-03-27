@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
-pub struct Numeral(pub i32);
+pub enum Value {
+    Numeral(i32),
+    True,
+    False,
+}
 #[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
 pub struct Identifier<'a>(pub &'a str);
-#[derive(Debug)]
-
+#[derive(Debug, Clone)]
 pub struct Variable<'a>(pub Identifier<'a>);
 #[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
 pub struct Sort<'a>(pub Identifier<'a>);
@@ -19,7 +24,7 @@ pub struct Program<'a>(
 #[derive(Debug)]
 pub enum Declarations<'a> {
     Empty,
-    Sequence(Declaration<'a>, Box<Declarations<'a>>),
+    Sequence(Box<Declarations<'a>>, Declaration<'a>),
 }
 
 #[derive(Debug)]
@@ -38,8 +43,8 @@ pub enum Variables<'a> {
 pub enum Expression<'a> {
     // True,
     // False,
-    Numeral(Numeral),
-    Identifier(Identifier<'a>),
+    Value(Value),
+    Variable(Identifier<'a>),
     Sum(Box<Expression<'a>>, Box<Expression<'a>>),
     Difference(Box<Expression<'a>>, Box<Expression<'a>>),
     Product(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -54,9 +59,8 @@ pub enum Expression<'a> {
 
 #[derive(Debug)]
 pub enum Command<'a> {
-    Empty,
     Assign(Identifier<'a>, Expression<'a>),
-    Var(Identifier<'a>, Box<Command<'a>>),
+    Var(Identifier<'a>, Sort<'a>, Box<Command<'a>>),
     Sequence(Box<Command<'a>>, Box<Command<'a>>),
     IfElse(Expression<'a>, Box<Command<'a>>, Box<Command<'a>>),
     If(Expression<'a>, Box<Command<'a>>),
@@ -67,10 +71,10 @@ pub enum Command<'a> {
 #[derive(Debug)]
 pub enum Declaration<'a> {
     Variable(Identifier<'a>, Sort<'a>),
-    Procedure(Identifier<'a>, Parameters<'a>, Command<'a>),
+    Procedure(Identifier<'a>, Parameters<'a>, Parameters<'a>, Command<'a>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Parameters<'a> {
     Empty,
     Sequence(Box<Parameters<'a>>, Variable<'a>, Sort<'a>),
@@ -82,14 +86,64 @@ impl<'a> From<&'a str> for Identifier<'a> {
     }
 }
 
-impl From<i32> for Numeral {
+impl From<i32> for Value {
     fn from(value: i32) -> Self {
-        Numeral(value)
+        Value::Numeral(value)
     }
 }
 
 impl<'a> From<&'a str> for Sort<'a> {
     fn from(value: &'a str) -> Self {
         Sort(value.into())
+    }
+}
+
+impl<'a> From<&'a str> for Box<Expression<'a>> {
+    fn from(value: &'a str) -> Self {
+        Expression::Variable(value.into()).into()
+    }
+}
+
+impl<'a> From<&'a str> for Variable<'a> {
+    fn from(value: &'a str) -> Self {
+        Variable(value.into())
+    }
+}
+
+impl<'a> From<&'a str> for Expression<'a> {
+    fn from(value: &'a str) -> Self {
+        Expression::Variable(value.into())
+    }
+}
+
+impl<'a> From<i32> for Expression<'a> {
+    fn from(value: i32) -> Self {
+        Expression::Value(value.into())
+    }
+}
+
+impl<'a> From<i32> for Box<Expression<'a>> {
+    fn from(value: i32) -> Self {
+        Expression::Value(value.into()).into()
+    }
+}
+
+struct Store<'a>{
+    map: HashMap<Identifier<'a>, Value>,
+    default: Value,
+}
+
+impl<'a> Store<'a> {
+    fn update(&mut self, identifier: Identifier<'a>, value: Value) {
+        self.map.insert(identifier, value);
+    }
+    fn lookup(&self, identifier: Identifier<'a>)-> &Value {
+        self.map.get(&identifier).unwrap_or(&self.default)
+    }
+    fn init(default: Value) -> Store<'a> {
+        Store {
+            default,
+            map: HashMap::new()
+        }
     }
 }
