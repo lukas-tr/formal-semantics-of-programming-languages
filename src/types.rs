@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[derive(Debug)]
 pub enum Value {
     Numeral(i32),
@@ -125,25 +123,5 @@ impl<'a> From<i32> for Expression<'a> {
 impl<'a> From<i32> for Box<Expression<'a>> {
     fn from(value: i32) -> Self {
         Expression::Value(value.into()).into()
-    }
-}
-
-struct Store<'a>{
-    map: HashMap<Identifier<'a>, Value>,
-    default: Value,
-}
-
-impl<'a> Store<'a> {
-    fn update(&mut self, identifier: Identifier<'a>, value: Value) {
-        self.map.insert(identifier, value);
-    }
-    fn lookup(&self, identifier: Identifier<'a>)-> &Value {
-        self.map.get(&identifier).unwrap_or(&self.default)
-    }
-    fn init(default: Value) -> Store<'a> {
-        Store {
-            default,
-            map: HashMap::new()
-        }
     }
 }

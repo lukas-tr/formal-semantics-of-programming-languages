@@ -4,16 +4,12 @@ use std::collections::{HashMap, HashSet};
 static INT_SORT: Sort<'static> = Sort(Identifier("Int"));
 static BOOL_SORT: Sort<'static> = Sort(Identifier("Bool"));
 
-lazy_static! {
-    static ref VALID_SORTS: HashSet<Sort<'static>> = [INT_SORT, BOOL_SORT].into();
-}
-
 type VariableTypingMap<'a> = HashMap<Identifier<'a>, Sort<'a>>;
 type ProcedureTypingSet<'a> = HashSet<(Identifier<'a>, (Vec<Sort<'a>>, Vec<Sort<'a>>))>;
 
 impl<'a> Program<'a> {
-    pub fn typecheck(&self, variables: &VariableTypingMap<'a>) -> Result<(), String> {
-        let Program(declarations, identifier, parameters, body) = self;
+    pub fn typecheck(&self) -> Result<(), String> {
+        let Program(declarations, _, parameters, body) = self;
         let (mut variable_typings, procedure_typings) =
             declarations.typecheck(&HashMap::new(), &HashSet::new())?;
         let (variable_typings_1, _) = parameters.typecheck(&HashMap::new(), &Vec::new())?;
@@ -57,15 +53,18 @@ impl<'a> Declaration<'a> {
             }
             Declaration::Procedure(identifier, in_params, out_params, body) => {
                 let x1 = in_params.typecheck(&HashMap::new(), &Vec::new())?;
-                let x2 = out_params.typecheck(&HashMap::new(), &Vec::new())?;
+                let mut x2 = out_params.typecheck(&HashMap::new(), &Vec::new())?;
 
-                // TODO: error when duplicate
-                let variable_typings_3: VariableTypingMap = variable_typings
-                    .clone()
-                    .into_iter()
-                    .chain(x1.0)
-                    .chain(x2.0)
-                    .collect();
+                for (key, value) in &x1.0 {
+                    if x2.0.contains_key(&key) {
+                        return Err(format!("function parameter {key} declared twice"));
+                    } else {
+                        x2.0.insert(*key, *value);
+                    }
+                }
+
+                let mut variable_typings_3 = variable_typings.clone();
+                variable_typings_3.extend(x2.0);
 
                 body.typecheck(&variable_typings_3, procedure_typings)?;
 
@@ -88,12 +87,14 @@ impl<'a> Command<'a> {
             Command::Assign(identifier, expression) => {
                 if let Some(variable_sort) = variable_typings.get(identifier) {
                     let expression_sort = expression.typecheck(variable_typings)?;
-                    if expression_sort == *variable_sort {
+                    if expression_sort != *variable_sort {
                         Err(format!("expression of type {expression_sort} can't be assigned to variable of type {variable_sort}"))
                     } else {
                         Ok(())
                     }
                 } else {
+                    dbg!(identifier);
+                    dbg!(variable_typings);
                     Err(format!("identifier {identifier} is not defined"))
                 }
             }
@@ -188,7 +189,6 @@ impl<'a> Expression<'a> {
             }
             Expression::Sum(left, right)
             | Expression::Difference(left, right)
-            | Expression::LessThanOrEqual(left, right)
             | Expression::Product(left, right)
             | Expression::Division(left, right) => {
                 if left.typecheck(variable_typings)? != INT_SORT {
@@ -212,6 +212,15 @@ impl<'a> Expression<'a> {
                     return Err("expression type mismatch: {left}, {right}".into());
                 }
                 Ok(left)
+            }
+            Expression::LessThanOrEqual(left, right) => {
+                if left.typecheck(variable_typings)? != INT_SORT {
+                    return Err("expected int expression".into());
+                }
+                if right.typecheck(variable_typings)? != INT_SORT {
+                    return Err("expected int expression".into());
+                }
+                Ok(BOOL_SORT)
             }
             Expression::And(left, right) | Expression::Or(left, right) => {
                 if left.typecheck(variable_typings)? != BOOL_SORT {
@@ -241,10 +250,15 @@ impl<'a> Parameters<'a> {
         match self {
             Parameters::Empty => Ok((HashMap::new(), Vec::new())),
             Parameters::Sequence(rest, variable, sort) => {
-                // TODO: error when duplicate
+                let (variable_typings, sort_sequence) =
+                    rest.typecheck(variable_typings, sort_sequence)?;
                 let mut sort_sequence = sort_sequence.to_owned();
-                sort_sequence.push(*sort);
                 let mut variable_typings = variable_typings.clone();
+                if variable_typings.contains_key(&variable.0) {
+                    let variable = variable.0;
+                    return Err(format!("parameter {variable} declared twice"));
+                }
+                sort_sequence.push(*sort);
                 variable_typings.insert(variable.0, *sort);
                 Ok((variable_typings, sort_sequence).to_owned())
             }
