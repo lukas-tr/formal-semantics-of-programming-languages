@@ -145,7 +145,7 @@ impl<'a> Display for Command<'a> {
                 let body = indent(format!("{body}"));
                 write!(f, "while {cond} do {{\n{body}\n}}")
             }
-            Command::Call(function, input, output) => {
+            Command::Call(function, input, output, _) => {
                 write!(f, "call {function}({input};{output});")
             }
         }

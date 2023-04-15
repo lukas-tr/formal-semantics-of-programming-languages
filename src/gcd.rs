@@ -93,27 +93,26 @@ pub fn generate_gcd(gcd_parameter_sequence: Parameters<'static>) -> Program<'sta
                 Command::Assign("c".into(), Expression::Sum("c".into(), 1.into())).into(),
             )
             .into(),
-        )
-        .into(),
+        ),
     );
 
     let while_body = Command::Var(
         "c".into(),
         "Int".into(),
         Command::IfElse(
-            Expression::LessThanOrEqual("b".into(), "a".into()).into(),
+            Expression::LessThanOrEqual("b".into(), "a".into()),
             Command::Call(
                 "div".into(),
                 Expressions::Sequence(
                     "a".into(),
                     Expressions::Sequence("b".into(), Expressions::Empty.into()).into(),
                 )
-                .into(),
+                ,
                 Variables::Sequence(
                     "c".into(),
                     Variables::Sequence("a".into(), Variables::Empty.into()).into(),
-                )
-                .into(),
+                ),
+                None,
             )
             .into(),
             Command::Call(
@@ -121,13 +120,12 @@ pub fn generate_gcd(gcd_parameter_sequence: Parameters<'static>) -> Program<'sta
                 Expressions::Sequence(
                     "b".into(),
                     Expressions::Sequence("a".into(), Expressions::Empty.into()).into(),
-                )
-                .into(),
+                ),
                 Variables::Sequence(
                     "c".into(),
                     Variables::Sequence("b".into(), Variables::Empty.into()).into(),
-                )
-                .into(),
+                ),
+                None,
             )
             .into(),
         )
@@ -135,7 +133,7 @@ pub fn generate_gcd(gcd_parameter_sequence: Parameters<'static>) -> Program<'sta
     );
 
     let gcd_if = Command::IfElse(
-        Expression::Not(Expression::LessThanOrEqual("a".into(), 0.into()).into()).into(),
+        Expression::Not(Expression::LessThanOrEqual("a".into(), 0.into()).into()),
         Command::Assign("g".into(), "a".into()).into(),
         Command::Assign("g".into(), "b".into()).into(),
     );
@@ -200,7 +198,7 @@ pub fn generate_gcd(gcd_parameter_sequence: Parameters<'static>) -> Program<'sta
         Expressions::Sequence(
             Expression::Product("a".into(), "b".into()),
             Expressions::Sequence(
-                Expression::Sum("a".into(), "b".into()).into(),
+                Expression::Sum("a".into(), "b".into()),
                 Expressions::Empty.into(),
             )
             .into(),
@@ -209,6 +207,7 @@ pub fn generate_gcd(gcd_parameter_sequence: Parameters<'static>) -> Program<'sta
             "c".into(),
             Variables::Sequence("d".into(), Variables::Empty.into()).into(),
         ),
+        None,
     );
 
     let program = Program(declarations, "gcd".into(), parameters, main);

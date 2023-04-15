@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use crate::typecheck::Signature;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Numeral(i32),
     True,
@@ -19,28 +21,26 @@ pub struct Program<'a>(
     pub Command<'a>,
 );
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Declarations<'a> {
     Empty,
     Sequence(Box<Declarations<'a>>, Declaration<'a>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expressions<'a> {
     Empty,
     Sequence(Expression<'a>, Box<Expressions<'a>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Variables<'a> {
     Empty,
     Sequence(Variable<'a>, Box<Variables<'a>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression<'a> {
-    // True,
-    // False,
     Value(Value),
     Variable(Identifier<'a>),
     Sum(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -55,7 +55,7 @@ pub enum Expression<'a> {
     Not(Box<Expression<'a>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Command<'a> {
     Assign(Identifier<'a>, Expression<'a>),
     Var(Identifier<'a>, Sort<'a>, Box<Command<'a>>),
@@ -63,10 +63,10 @@ pub enum Command<'a> {
     IfElse(Expression<'a>, Box<Command<'a>>, Box<Command<'a>>),
     If(Expression<'a>, Box<Command<'a>>),
     While(Expression<'a>, Box<Command<'a>>),
-    Call(Identifier<'a>, Expressions<'a>, Variables<'a>),
+    Call(Identifier<'a>, Expressions<'a>, Variables<'a>, Option<Signature<'a>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Declaration<'a> {
     Variable(Identifier<'a>, Sort<'a>),
     Procedure(Identifier<'a>, Parameters<'a>, Parameters<'a>, Command<'a>),
